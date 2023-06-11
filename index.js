@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
-const jwt = require("jsonwebtoken");
+const jwt = require('jsonwebtoken');
 const app = express();
 // const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
@@ -10,19 +10,36 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+
+
 const verifyJwt = (req, res, next) => {
   const authorization = req.headers.authorization;
+  console.log(authorization);
+
   if (!authorization) {
-    return res.status(401).send({ error: true, message: "unAthorized access" });
+    return res
+      .status(401)
+      .send({ error: true, message: "Unauthorized access" });
   }
+
   const token = authorization.split(" ")[1];
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+  console.log("this is token ",token);
+
+  if (!token) {
+    return res
+      .status(403)
+      .send({ error: true, message: "Unauthorized access" });
+  }
+
+  jwt.verify(token, process.env.TOKEN_SECRET_ACCESS, (err, decoded) => {
     if (err) {
       return res
-        .status(401)
-        .send({ error: true, message: "unAthorized access" });
+        .status(403)
+        .send({ error: true, message: "Unauthorized access" });
     }
+
     req.decoded = decoded;
+    console.log("req.deqoded email",req.decoded);
 
     next();
   });
@@ -64,50 +81,84 @@ async function run() {
 
     app.post("/jwt", (req, res) => {
       const user = req.body;
-      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: "1h",
+      console.log("this is user", user);
+      const token = jwt.sign(user, process.env.TOKEN_SECRET_ACCESS, {
+        expiresIn: "30d",
       });
+      console.log(token);
       res.send({ token });
     });
-
-    //using verify jwt using verify admin
 
     const verifyAdmin = async (req, res, next) => {
       const email = req.decoded.email;
 
       const query = { email: email };
       const user = await usersCollection.findOne(query);
+
       if (user?.role !== "admin") {
         return res
           .status(403)
-          .send({ error: true, message: "forbidden message" });
+          .send({ error: true, message: "Forbidden access" });
       }
+
       next();
     };
+
     const verifyInstructor = async (req, res, next) => {
       const email = req.decoded.email;
 
       const query = { email: email };
       const user = await usersCollection.findOne(query);
-      if (user?.role !== "istructor") {
+
+      if (user?.role !== "instructor") {
         return res
           .status(403)
-          .send({ error: true, message: "forbidden message" });
+          .send({ error: true, message: "Forbidden access" });
       }
+
       next();
     };
 
+    // My  Menu collection
+
+    app.get("/menu", async (req, res) => {
+      const result = await summerCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.post("/menu", async (req, res) => {
+      const newItem = req.body;
+      const result = await summerCollection.insertOne(newItem);
+      res.send(result);
+    });
+
+    app.delete("/menu/:id", async (req, res) => {
+      const id = req.params.id;
+
+      const query = { _id: new ObjectId(id) };
+
+      const result = await summerCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    app.get("/menu/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: id };
+      const result = await summerCollection.findOne(query);
+      res.send(result);
+    });
+
     // users collection
 
-    app.get("/users", async (req, res) => {
+    app.get("/users",verifyJwt, async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
 
-    app.post("/users", async (req, res) => {
+    app.post("/users",async (req, res) => {
       const user = req.body;
 
-      const query = { email: user.email };
+      const query = { email: user?.email };
       const existingEmail = await usersCollection.findOne(query);
 
       if (existingEmail) {
@@ -119,7 +170,7 @@ async function run() {
 
     // Admin Id
 
-    app.get("/users/admin/:email", verifyJwt, async (req, res) => {
+    app.get("/users/admin/:email",verifyJwt,verifyAdmin, async (req, res) => {
       const email = req.params.email;
 
       if (req.decoded.email !== email) {
@@ -131,7 +182,7 @@ async function run() {
       res.send(result);
     });
 
-    app.patch("/users/admin/:id", async (req, res) => {
+    app.patch("/users/admin/:id",verifyJwt,verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
@@ -141,6 +192,15 @@ async function run() {
       };
 
       const result = await usersCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    app.delete("/users/admin/:id", async (req, res) => {
+      const id = req.params.id;
+
+      const query = { _id: new ObjectId(id) };
+
+      const result = await usersCollection.deleteOne(query);
       res.send(result);
     });
 
@@ -186,6 +246,44 @@ async function run() {
     });
 
     app.delete("/users/instructor/:id", async (req, res) => {
+      const id = req.params.id;
+
+      const query = { _id: new ObjectId(id) };
+
+      const result = await usersCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    //
+
+    // Student  Id
+
+    app.get("/users/student/:email",verifyJwt, async (req, res) => {
+      const email = req.params.email;
+
+      if (req.decoded.email !== email) {
+        res.send({ student: false });
+      }
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      const result = { student: user?.role === "student" };
+      res.send(result);
+    });
+
+    app.patch("/users/student/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          role: "student",
+        },
+      };
+
+      const result = await usersCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    app.delete("/users/student/:id", async (req, res) => {
       const id = req.params.id;
 
       const query = { _id: new ObjectId(id) };

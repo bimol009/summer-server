@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 const app = express();
 // const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
@@ -9,8 +9,6 @@ const port = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
-
-
 
 const verifyJwt = (req, res, next) => {
   const authorization = req.headers.authorization;
@@ -23,7 +21,7 @@ const verifyJwt = (req, res, next) => {
   }
 
   const token = authorization.split(" ")[1];
-  console.log("this is token ",token);
+  console.log("this is token ", token);
 
   if (!token) {
     return res
@@ -39,7 +37,7 @@ const verifyJwt = (req, res, next) => {
     }
 
     req.decoded = decoded;
-    console.log("req.deqoded email",req.decoded);
+    console.log("req.deqoded email", req.decoded);
 
     next();
   });
@@ -150,12 +148,12 @@ async function run() {
 
     // users collection
 
-    app.get("/users",verifyJwt, async (req, res) => {
+    app.get("/users", verifyJwt, async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
 
-    app.post("/users",async (req, res) => {
+    app.post("/users", async (req, res) => {
       const user = req.body;
 
       const query = { email: user?.email };
@@ -170,7 +168,7 @@ async function run() {
 
     // Admin Id
 
-    app.get("/users/admin/:email",verifyJwt,verifyAdmin, async (req, res) => {
+    app.get("/users/admin/:email", verifyJwt, async (req, res) => {
       const email = req.params.email;
 
       if (req.decoded.email !== email) {
@@ -182,7 +180,7 @@ async function run() {
       res.send(result);
     });
 
-    app.patch("/users/admin/:id",verifyJwt,verifyAdmin, async (req, res) => {
+    app.patch("/users/admin/:id", verifyJwt, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
@@ -258,7 +256,7 @@ async function run() {
 
     // Student  Id
 
-    app.get("/users/student/:email",verifyJwt, async (req, res) => {
+    app.get("/users/student/:email", verifyJwt, async (req, res) => {
       const email = req.params.email;
 
       if (req.decoded.email !== email) {

@@ -12,7 +12,6 @@ app.use(express.json());
 
 const verifyJwt = (req, res, next) => {
   const authorization = req.headers.authorization;
-  console.log(authorization);
 
   if (!authorization) {
     return res
@@ -21,7 +20,6 @@ const verifyJwt = (req, res, next) => {
   }
 
   const token = authorization.split(" ")[1];
-  console.log("this is token ", token);
 
   if (!token) {
     return res
@@ -37,7 +35,6 @@ const verifyJwt = (req, res, next) => {
     }
 
     req.decoded = decoded;
-    console.log("req.deqoded email", req.decoded);
 
     next();
   });
@@ -77,7 +74,7 @@ async function run() {
     const instructorCollection = client
       .db("summerCampCollection")
       .collection("instructor");
-      const cartsPaymentItem = client
+    const cartsPaymentItem = client
       .db("summerCampCollection")
       .collection("cartsPayment");
 
@@ -85,11 +82,11 @@ async function run() {
 
     app.post("/jwt", (req, res) => {
       const user = req.body;
-      console.log("this is user", user);
+
       const token = jwt.sign(user, process.env.TOKEN_SECRET_ACCESS, {
         expiresIn: "30d",
       });
-      console.log(token);
+
       res.send({ token });
     });
 
@@ -142,6 +139,10 @@ async function run() {
       res.send(result);
     });
 
+    
+ 
+ 
+
     app.post("/carts", async (req, res) => {
       const cartItem = req.body;
 
@@ -155,6 +156,14 @@ async function run() {
       const query = { _id: new ObjectId(id) };
 
       const result = await cartsCollection.deleteOne(query);
+      res.send(result);
+    });
+    app.get("/carts/:id", async (req, res) => {
+      const id = req.params.id;
+
+      const query = { _id: new ObjectId(id) };
+
+      const result = await cartsCollection.findOne(query);
       res.send(result);
     });
 
@@ -331,14 +340,18 @@ async function run() {
       res.send(result);
     });
 
-    // payment method intent
 
-    app.post("/create-payment-intent", verifyJwt, async (req, res) => {
+
+    app.post("/create-payment-intent/:id", verifyJwt, async (req, res) => {
       const { price } = req.body;
       const amount = price * 100;
-      console.log(price, amount);
+   
+     
       const paymentIntent = await stripe.paymentIntents.create({
         amount: amount,
+        metadata: {
+          id: req.params.id,
+        },
         currency: "usd",
         payment_method_types: ["card"],
       });
@@ -347,17 +360,46 @@ async function run() {
       });
     });
 
-    //payment related api
-    app.post("/payments", verifyJwt, async (req, res) => {
-      const payment = req.body;
+   
 
-      const result = await cartsPaymentItem.insertOne(payment);
-      const query = {
-        _id: { $in: payment.cartItems.map((id) => new ObjectId(id)) },
-      };
-      const deletedId = await cartsCollection.deleteMany(query);
-      res.send({ result, deletedId });
+    app.get("/payment", async (req, res) => {
+      const result = await cartsPaymentItem.find().toArray();
+      res.send(result);
     });
+
+    app.delete("/payment/:id", async (req, res) => {
+      const id = req.params.id;
+
+      const query = { _id: new ObjectId(id) };
+
+      const result = await cartsPaymentItem.deleteOne(query);
+      res.send(result);
+    })
+
+    app.post("/payments/:id", verifyJwt, async (req, res) => {
+      const payment = req.body;
+      const id = req.params.id;
+      console.log(id);
+      const result = await cartsPaymentItem.insertOne(payment);
+      const query = { _id: new ObjectId(id) };
+      const deletedId = await cartsCollection.deleteOne(query);
+      res.send({ result,deletedId });
+    });
+
+    // app.delete("/payments/:id", verifyJwt, async (req, res) => {
+    //   const paymentId = req.params.id;
+
+    //   const paymentQuery = { _id: new ObjectId(paymentId) };
+    //   const existingPayment = await cartsPaymentItem.findOne(paymentQuery);
+    //   if (!existingPayment) {
+    //     return res
+    //       .status(404)
+    //       .send({ error: true, message: "Payment record not found" });
+    //   }
+
+    //   const deleteResult = await cartsPaymentItem.deleteOne(paymentQuery);
+    //   res.send({ deletedCount: deleteResult.deletedCount });
+    // });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });

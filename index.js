@@ -202,11 +202,12 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/menuItem/:id", verifyJwt, async (req, res) => {
-      const payment = req.body;
+    app.post("/menuItem/:id", async (req, res) => {
+      const body = req.body;
+      console.log(body)
       const id = req.params.id;
       console.log(id);
-      const result = await summerCollection.insertOne(payment);
+      const result = await summerCollection.insertOne(body);
       const query = { _id: new ObjectId(id) };
       const deletedId = await addCollection.deleteOne(query);
       res.send({ result, deletedId });
@@ -304,14 +305,6 @@ async function run() {
       res.send(result);
     });
 
-    app.delete("/users/admin/:id", async (req, res) => {
-      const id = req.params.id;
-
-      const query = { _id: new ObjectId(id) };
-
-      const result = await usersCollection.deleteOne(query);
-      res.send(result);
-    });
 
     // Instructor Id
 

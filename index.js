@@ -65,6 +65,9 @@ async function run() {
     const summerCollection = client
       .db("summerCampCollection")
       .collection("campCollection");
+    const addCollection = client
+      .db("summerCampCollection")
+      .collection("addClass");
     const usersCollection = client
       .db("summerCampCollection")
       .collection("users");
@@ -170,12 +173,6 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/menu", async (req, res) => {
-      const menuChange = req.body;
-      const result = await summerCollection.insertOne(menuChange);
-      res.send(result);
-    });
-
     app.delete("/menu/:id", async (req, res) => {
       const id = req.params.id;
 
@@ -189,6 +186,65 @@ async function run() {
       const id = req.params.id;
       const query = { _id: id };
       const result = await summerCollection.findOne(query);
+      res.send(result);
+    });
+
+    //menuItem
+
+    app.get("/menuItem", async (req, res) => {
+      const result = await addCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.post("/menuItem", async (req, res) => {
+      const menuChange = req.body;
+      const result = await addCollection.insertOne(menuChange);
+      res.send(result);
+    });
+
+    app.post("/menuItem/:id", verifyJwt, async (req, res) => {
+      const payment = req.body;
+      const id = req.params.id;
+      console.log(id);
+      const result = await summerCollection.insertOne(payment);
+      const query = { _id: new ObjectId(id) };
+      const deletedId = await addCollection.deleteOne(query);
+      res.send({ result, deletedId });
+    });
+
+    app.get("/menuItem/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: id };
+      const result = await addCollection.findOne(query);
+      res.send(result);
+    });
+
+    app.delete("/menuItem/:id", async (req, res) => {
+      const id = req.params.id;
+
+      const query = { _id: new ObjectId(id) };
+
+      const result = await addCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    app.patch("/menuItem/:id", verifyJwt, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: id };
+      const options = { upsert: true };
+      const updateMenu = req.body;
+      const menuChange = {
+        $set: {
+          name: updateMenu.name,
+          instructor: updateMenu.instructor,
+          picture: updateMenu.picture,
+          price: updateMenu.price,
+          available_seats: updateMenu.available_seats,
+          email: updateMenu.email,
+        },
+      };
+
+      const result = await addCollection.updateOne(filter, menuChange, options);
       res.send(result);
     });
 
@@ -350,7 +406,7 @@ async function run() {
       });
       res.send({
         clientSecret: paymentIntent.client_secret,
-        id: paymentIntent.id
+        id: paymentIntent.id,
       });
     });
 
@@ -379,20 +435,20 @@ async function run() {
     });
 
     app.get("/transaction/:id", async (req, res) => {
-      const { id } = req.params; 
+      const { id } = req.params;
 
-      console.log(id)
+      console.log(id);
       const paymentIntent = await stripe.paymentIntents.retrieve(id);
 
       res.json({ transaction: paymentIntent });
     });
 
     app.post("/create-payment-intent", async (req, res) => {
-
-    
-      res.json({ clientSecret: paymentIntent.client_secret, id: paymentIntent.id });
+      res.json({
+        clientSecret: paymentIntent.client_secret,
+        id: paymentIntent.id,
+      });
     });
-    
 
     await client.db("admin").command({ ping: 1 });
     console.log(

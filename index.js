@@ -378,7 +378,20 @@ async function run() {
       res.send({ result, deletedId });
     });
 
-   
+    app.get("/transaction/:id", async (req, res) => {
+      const { id } = req.params; 
+
+      console.log(id)
+      const paymentIntent = await stripe.paymentIntents.retrieve(id);
+
+      res.json({ transaction: paymentIntent });
+    });
+
+    app.post("/create-payment-intent", async (req, res) => {
+
+    
+      res.json({ clientSecret: paymentIntent.client_secret, id: paymentIntent.id });
+    });
     
 
     await client.db("admin").command({ ping: 1 });

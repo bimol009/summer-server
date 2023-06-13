@@ -139,10 +139,6 @@ async function run() {
       res.send(result);
     });
 
-    
- 
- 
-
     app.post("/carts", async (req, res) => {
       const cartItem = req.body;
 
@@ -340,13 +336,10 @@ async function run() {
       res.send(result);
     });
 
-
-
     app.post("/create-payment-intent/:id", verifyJwt, async (req, res) => {
       const { price } = req.body;
       const amount = price * 100;
-   
-     
+
       const paymentIntent = await stripe.paymentIntents.create({
         amount: amount,
         metadata: {
@@ -357,10 +350,9 @@ async function run() {
       });
       res.send({
         clientSecret: paymentIntent.client_secret,
+        id: paymentIntent.id
       });
     });
-
-   
 
     app.get("/payment", async (req, res) => {
       const result = await cartsPaymentItem.find().toArray();
@@ -374,7 +366,7 @@ async function run() {
 
       const result = await cartsPaymentItem.deleteOne(query);
       res.send(result);
-    })
+    });
 
     app.post("/payments/:id", verifyJwt, async (req, res) => {
       const payment = req.body;
@@ -383,25 +375,12 @@ async function run() {
       const result = await cartsPaymentItem.insertOne(payment);
       const query = { _id: new ObjectId(id) };
       const deletedId = await cartsCollection.deleteOne(query);
-      res.send({ result,deletedId });
+      res.send({ result, deletedId });
     });
 
-    // app.delete("/payments/:id", verifyJwt, async (req, res) => {
-    //   const paymentId = req.params.id;
+   
+    
 
-    //   const paymentQuery = { _id: new ObjectId(paymentId) };
-    //   const existingPayment = await cartsPaymentItem.findOne(paymentQuery);
-    //   if (!existingPayment) {
-    //     return res
-    //       .status(404)
-    //       .send({ error: true, message: "Payment record not found" });
-    //   }
-
-    //   const deleteResult = await cartsPaymentItem.deleteOne(paymentQuery);
-    //   res.send({ deletedCount: deleteResult.deletedCount });
-    // });
-
-    // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"

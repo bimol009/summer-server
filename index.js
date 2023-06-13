@@ -171,8 +171,8 @@ async function run() {
     });
 
     app.post("/menu", async (req, res) => {
-      const newItem = req.body;
-      const result = await summerCollection.insertOne(newItem);
+      const menuChange = req.body;
+      const result = await summerCollection.insertOne(menuChange);
       res.send(result);
     });
 

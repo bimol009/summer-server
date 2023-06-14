@@ -60,7 +60,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
     const summerCollection = client
       .db("summerCampCollection")
@@ -184,7 +184,7 @@ async function run() {
 
     app.get("/menu/:id", async (req, res) => {
       const id = req.params.id;
-      const query = { _id: id };
+      const query = { _id: new ObjectId(id) };
       const result = await summerCollection.findOne(query);
       res.send(result);
     });
@@ -215,7 +215,7 @@ async function run() {
 
     app.get("/menuItem/:id", async (req, res) => {
       const id = req.params.id;
-      const query = { _id: id };
+      const query = { _id: new ObjectId(id) };
       const result = await addCollection.findOne(query);
       res.send(result);
     });
@@ -231,7 +231,7 @@ async function run() {
 
     app.patch("/menuItem/:id", verifyJwt, verifyAdmin, async (req, res) => {
       const id = req.params.id;
-      const filter = { _id: id };
+      const filter = { _id: new ObjectId(id) };
       const options = { upsert: true };
       const updateMenu = req.body;
       const menuChange = {
@@ -443,7 +443,7 @@ async function run() {
       });
     });
 
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );

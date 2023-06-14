@@ -283,7 +283,7 @@ async function run() {
       res.send(result);
     });
 
-    app.patch("/users/admin/:id", verifyJwt, verifyAdmin, async (req, res) => {
+    app.patch("/users/admin/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
@@ -308,7 +308,7 @@ async function run() {
 
     // Instructor Id
 
-    app.get("/instructor", async (req, res) => {
+    app.get("/instructor",  async (req, res) => {
       const result = await instructorCollection.find().toArray();
       res.send(result);
     });
@@ -403,7 +403,7 @@ async function run() {
       });
     });
 
-    app.get("/payment", async (req, res) => {
+    app.get("/payment",  async (req, res) => {
       const result = await cartsPaymentItem.find().toArray();
       res.send(result);
     });

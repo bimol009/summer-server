@@ -173,6 +173,11 @@ async function run() {
       res.send(result);
     });
 
+    // app.get("/menu", async (req, res) => {
+    //   const result = await summerCollection.find().toArray();
+    //   res.send(result);
+    // });
+
     app.delete("/menu/:id", async (req, res) => {
       const id = req.params.id;
 
@@ -187,6 +192,20 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const result = await summerCollection.findOne(query);
       res.send(result);
+    });
+
+    app.patch("/menu/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await summerCollection.findOne(query);
+      const update = {
+        $set: {
+          available_seats: result.available_seats - 1,
+          enrollStudent: result.enrollStudent ? result.enrollStudent + 1 : 1,
+        },
+      };
+      const updateResult = await summerCollection.updateOne(query, update);
+      res.send(updateResult);
     });
 
     //menuItem
@@ -204,10 +223,10 @@ async function run() {
 
     app.post("/menuItem/:id", async (req, res) => {
       const body = req.body;
-      console.log(body)
+      console.log(body);
       const id = req.params.id;
       console.log(id);
-      const result = await summerCollection.insertOne(body);
+      const result = await summerCollection.insertOne({ _id: new ObjectId(id), ...body });
       const query = { _id: new ObjectId(id) };
       const deletedId = await addCollection.deleteOne(query);
       res.send({ result, deletedId });
@@ -234,6 +253,7 @@ async function run() {
       const filter = { _id: new ObjectId(id) };
       const options = { upsert: true };
       const updateMenu = req.body;
+      console.log(updateMenu)
       const menuChange = {
         $set: {
           name: updateMenu.name,
@@ -242,6 +262,7 @@ async function run() {
           price: updateMenu.price,
           available_seats: updateMenu.available_seats,
           email: updateMenu.email,
+          _id:filter
         },
       };
 
@@ -305,10 +326,9 @@ async function run() {
       res.send(result);
     });
 
-
     // Instructor Id
 
-    app.get("/instructor",  async (req, res) => {
+    app.get("/instructor", async (req, res) => {
       const result = await instructorCollection.find().toArray();
       res.send(result);
     });
@@ -403,7 +423,7 @@ async function run() {
       });
     });
 
-    app.get("/payment",  async (req, res) => {
+    app.get("/payment", async (req, res) => {
       const result = await cartsPaymentItem.find().toArray();
       res.send(result);
     });
@@ -417,14 +437,44 @@ async function run() {
       res.send(result);
     });
 
+    // app.post("/payments/:id", verifyJwt, async (req, res) => {
+    //   const payment = req.body;
+    //   const id = req.params.id;
+    //   const result = await cartsPaymentItem.insertOne(payment);
+    //   console.log(id);
+    //   const query = { _id: new ObjectId(id) };
+    //   const update = {
+    //     $inc: {
+    //       available_seats: seat - 1,
+    //       enrollStudent: result.enrollStudent ? result.enrollStudent + 1 : 1,
+    //     },
+    //   };
+    //   const updateResult = await summerCollection.updateOne(query, update);
+
+    //   const deletedId = await cartsCollection.deleteOne(query);
+    //   res.send({ result, updateResult, deletedId });
+    // });
     app.post("/payments/:id", verifyJwt, async (req, res) => {
       const payment = req.body;
+      console.log(payment);
+      const classId = payment.class;
+      console.log("classId", classId);
       const id = req.params.id;
       console.log(id);
+
+      const filter = { _id: new ObjectId(classId) };
+
+      const update = {
+        $inc: {
+          available_seats: -1,
+          enrolledStudent: 1,
+        },
+      };
+      const updateResult = await summerCollection.updateOne(filter, update);
       const result = await cartsPaymentItem.insertOne(payment);
       const query = { _id: new ObjectId(id) };
       const deletedId = await cartsCollection.deleteOne(query);
-      res.send({ result, deletedId });
+      res.send({ result, updateResult, deletedId });
     });
 
     app.get("/transaction/:id", async (req, res) => {
